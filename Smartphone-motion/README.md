@@ -186,18 +186,14 @@ The VPython box rotates according to smartphone motion.
   Tilt right      Box rotates right
   Rotate flat     Box spins
 
-------------------------------------------------------------------------
+## 10. Observation Table
 
-# 10. Observation Table
-
-  Trial   Motion          Sensor Response   Visualization
-  ------- --------------- ----------------- --------------------
-  1       Tilt forward    Pitch increases   Box tilts forward
-  2       Tilt backward   Pitch decreases   Box tilts backward
-  3       Tilt left       Roll increases    Box rotates left
-  4       Tilt right      Roll decreases    Box rotates right
-
-------------------------------------------------------------------------
+| Trial | Motion        | Sensor Response | Visualization       |
+|------|---------------|----------------|---------------------|
+| 1 | Tilt forward  | Pitch increases  | Box tilts forward  |
+| 2 | Tilt backward | Pitch decreases  | Box tilts backward |
+| 3 | Tilt left     | Roll increases   | Box rotates left   |
+| 4 | Tilt right    | Roll decreases   | Box rotates right  |
 
 # 11. CPS 5C Interpretation
 
