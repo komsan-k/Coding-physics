@@ -198,13 +198,13 @@ The VPython box rotates according to smartphone motion.
 
 # 11. CPS 5C Interpretation
 
-  CPS Layer       Role
-  --------------- ------------------------------
-  Connection      Smartphone sensors
-  Conversion      Sensor app formats data
-  Cyber           Python receives data
-  Cognition       Visualization interpretation
-  Configuration   VPython object updates
+|  CPS Layer   |    Role |
+  --------------- | ------------------------------
+  Connection   |   Smartphone sensors
+  Conversion    |  Sensor app formats data
+  Cyber       |    Python receives data
+  Cognition    |   Visualization interpretation
+  Configuration |  VPython object updates
 
 ------------------------------------------------------------------------
 
