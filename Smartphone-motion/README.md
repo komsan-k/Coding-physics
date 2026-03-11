@@ -188,6 +188,7 @@ The VPython box rotates according to smartphone motion.
 
 ## 10. Observation Table
 
+
 | Trial | Motion        | Sensor Response | Visualization       |
 |------|---------------|----------------|---------------------|
 | 1 | Tilt forward  | Pitch increases  | Box tilts forward  |
