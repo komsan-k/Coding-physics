@@ -178,13 +178,13 @@ the motion**.
 
 The VPython box rotates according to smartphone motion.
 
-  Phone Motion    VPython Result
-  --------------- --------------------
-  Tilt forward    Box tilts forward
-  Tilt backward   Box tilts backward
-  Tilt left       Box rotates left
-  Tilt right      Box rotates right
-  Rotate flat     Box spins
+  | Phone Motion  |  VPython Result |
+  --------------- | --------------------
+ | Tilt forward  |  Box tilts forward |
+  | Tilt backward |  Box tilts backward |
+ | Tilt left    |   Box rotates left |
+ | Tilt right   |   Box rotates right |
+ | Rotate flat  |   Box spins |
 
 ## 10. Observation Table
 
