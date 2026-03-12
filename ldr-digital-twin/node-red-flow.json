@@ -1,0 +1,343 @@
+[
+  {
+    "id": "f1a1b2c3d4e5f601",
+    "type": "tab",
+    "label": "LDR Digital Twin",
+    "disabled": false,
+    "info": "ESP32 + LDR + MQTT + Dashboard"
+  },
+  {
+    "id": "a111111111111111",
+    "type": "mqtt-broker",
+    "name": "HiveMQ Public Broker",
+    "broker": "broker.hivemq.com",
+    "port": "1883",
+    "clientid": "",
+    "autoConnect": true,
+    "usetls": false,
+    "protocolVersion": "4",
+    "keepalive": "60",
+    "cleansession": true,
+    "autoUnsubscribe": true,
+    "birthTopic": "",
+    "birthQos": "0",
+    "birthRetain": "false",
+    "birthPayload": "",
+    "closeTopic": "",
+    "closeQos": "0",
+    "closeRetain": "false",
+    "closePayload": "",
+    "willTopic": "",
+    "willQos": "0",
+    "willRetain": "false",
+    "willPayload": "",
+    "userProps": "",
+    "sessionExpiry": ""
+  },
+  {
+    "id": "b111111111111111",
+    "type": "ui_tab",
+    "name": "LDR Dashboard",
+    "icon": "dashboard",
+    "disabled": false,
+    "hidden": false
+  },
+  {
+    "id": "c111111111111111",
+    "type": "ui_group",
+    "name": "Live LDR Data",
+    "tab": "b111111111111111",
+    "order": 1,
+    "disp": true,
+    "width": "12",
+    "collapse": false
+  },
+  {
+    "id": "d111111111111111",
+    "type": "mqtt in",
+    "z": "f1a1b2c3d4e5f601",
+    "name": "LDR MQTT In",
+    "topic": "esp32/ldr",
+    "qos": "0",
+    "datatype": "auto-detect",
+    "broker": "a111111111111111",
+    "nl": false,
+    "rap": true,
+    "rh": 0,
+    "inputs": 0,
+    "x": 150,
+    "y": 100,
+    "wires": [
+      [
+        "e111111111111111"
+      ]
+    ]
+  },
+  {
+    "id": "e111111111111111",
+    "type": "function",
+    "z": "f1a1b2c3d4e5f601",
+    "name": "Parse + Clamp + Compute",
+    "func": "let x = Number(msg.payload);\nif (isNaN(x)) return null;\n\nx = Math.max(0, Math.min(4095, x));\nlet percent = (x / 4095) * 100;\nlet state = \"Dark\";\n\nif (x <= 1200) {\n    state = \"Dark\";\n} else if (x <= 2800) {\n    state = \"Medium\";\n} else {\n    state = \"Bright\";\n}\n\nmsg.payload = x;\nmsg.raw = x;\nmsg.percent = Number(percent.toFixed(1));\nmsg.state = state;\nmsg.topic = \"LDR\";\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 390,
+    "y": 100,
+    "wires": [
+      [
+        "g111111111111111",
+        "h111111111111111",
+        "i111111111111111",
+        "j111111111111111",
+        "k111111111111111",
+        "l111111111111111"
+      ]
+    ]
+  },
+  {
+    "id": "g111111111111111",
+    "type": "ui_gauge",
+    "z": "f1a1b2c3d4e5f601",
+    "name": "LDR Gauge",
+    "group": "c111111111111111",
+    "order": 1,
+    "width": "6",
+    "height": "4",
+    "gtype": "gage",
+    "title": "Light Intensity (ADC)",
+    "label": "0 - 4095",
+    "format": "{{value}}",
+    "min": 0,
+    "max": "4095",
+    "colors": [
+      "#5e81ac",
+      "#e6b800",
+      "#ff7f0e"
+    ],
+    "seg1": "1200",
+    "seg2": "2800",
+    "className": "",
+    "x": 690,
+    "y": 40,
+    "wires": []
+  },
+  {
+    "id": "h111111111111111",
+    "type": "ui_chart",
+    "z": "f1a1b2c3d4e5f601",
+    "name": "LDR History",
+    "group": "c111111111111111",
+    "order": 2,
+    "width": "12",
+    "height": "4",
+    "label": "LDR History",
+    "chartType": "line",
+    "legend": "false",
+    "xformat": "HH:mm:ss",
+    "interpolate": "linear",
+    "nodata": "Waiting for LDR data...",
+    "dot": false,
+    "ymin": "0",
+    "ymax": "4095",
+    "removeOlder": "1",
+    "removeOlderPoints": "",
+    "removeOlderUnit": "3600",
+    "cutout": 0,
+    "useOneColor": false,
+    "useUTC": false,
+    "colors": [
+      "#1f77b4",
+      "#aec7e8",
+      "#ff7f0e",
+      "#2ca02c",
+      "#d62728",
+      "#9467bd",
+      "#8c564b",
+      "#e377c2",
+      "#7f7f7f"
+    ],
+    "outputs": 1,
+    "useDifferentColor": false,
+    "className": "",
+    "x": 680,
+    "y": 100,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "i111111111111111",
+    "type": "change",
+    "z": "f1a1b2c3d4e5f601",
+    "name": "Raw ADC -> payload",
+    "rules": [
+      {
+        "t": "set",
+        "p": "payload",
+        "pt": "msg",
+        "to": "raw",
+        "tot": "msg"
+      }
+    ],
+    "action": "",
+    "property": "",
+    "from": "",
+    "to": "",
+    "reg": false,
+    "x": 660,
+    "y": 160,
+    "wires": [
+      [
+        "m111111111111111"
+      ]
+    ]
+  },
+  {
+    "id": "j111111111111111",
+    "type": "change",
+    "z": "f1a1b2c3d4e5f601",
+    "name": "Percent -> payload",
+    "rules": [
+      {
+        "t": "set",
+        "p": "payload",
+        "pt": "msg",
+        "to": "percent",
+        "tot": "msg"
+      }
+    ],
+    "action": "",
+    "property": "",
+    "from": "",
+    "to": "",
+    "reg": false,
+    "x": 660,
+    "y": 220,
+    "wires": [
+      [
+        "n111111111111111"
+      ]
+    ]
+  },
+  {
+    "id": "k111111111111111",
+    "type": "change",
+    "z": "f1a1b2c3d4e5f601",
+    "name": "State -> payload",
+    "rules": [
+      {
+        "t": "set",
+        "p": "payload",
+        "pt": "msg",
+        "to": "state",
+        "tot": "msg"
+      }
+    ],
+    "action": "",
+    "property": "",
+    "from": "",
+    "to": "",
+    "reg": false,
+    "x": 650,
+    "y": 280,
+    "wires": [
+      [
+        "o111111111111111"
+      ]
+    ]
+  },
+  {
+    "id": "l111111111111111",
+    "type": "function",
+    "z": "f1a1b2c3d4e5f601",
+    "name": "State Badge HTML",
+    "func": "let s = msg.state || \"Unknown\";\nlet color = \"#999\";\nif (s === \"Dark\") color = \"#5e81ac\";\nelse if (s === \"Medium\") color = \"#e6b800\";\nelse if (s === \"Bright\") color = \"#ff7f0e\";\n\nmsg.payload = `<div style=\"padding:12px;text-align:center;\">\n  <span style=\"display:inline-block;padding:10px 18px;border-radius:18px;background:${color};color:white;font-size:20px;font-weight:bold;min-width:140px;\">\n    ${s}\n  </span>\n</div>`;\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 650,
+    "y": 340,
+    "wires": [
+      [
+        "p111111111111111"
+      ]
+    ]
+  },
+  {
+    "id": "m111111111111111",
+    "type": "ui_text",
+    "z": "f1a1b2c3d4e5f601",
+    "group": "c111111111111111",
+    "order": 3,
+    "width": "4",
+    "height": "1",
+    "name": "Raw ADC Text",
+    "label": "Raw ADC",
+    "format": "{{msg.payload}}",
+    "layout": "row-spread",
+    "className": "",
+    "x": 900,
+    "y": 160,
+    "wires": []
+  },
+  {
+    "id": "n111111111111111",
+    "type": "ui_text",
+    "z": "f1a1b2c3d4e5f601",
+    "group": "c111111111111111",
+    "order": 4,
+    "width": "4",
+    "height": "1",
+    "name": "Percent Text",
+    "label": "Brightness (%)",
+    "format": "{{msg.payload}} %",
+    "layout": "row-spread",
+    "className": "",
+    "x": 900,
+    "y": 220,
+    "wires": []
+  },
+  {
+    "id": "o111111111111111",
+    "type": "ui_text",
+    "z": "f1a1b2c3d4e5f601",
+    "group": "c111111111111111",
+    "order": 5,
+    "width": "4",
+    "height": "1",
+    "name": "State Text",
+    "label": "Light State",
+    "format": "{{msg.payload}}",
+    "layout": "row-spread",
+    "className": "",
+    "x": 890,
+    "y": 280,
+    "wires": []
+  },
+  {
+    "id": "p111111111111111",
+    "type": "ui_template",
+    "z": "f1a1b2c3d4e5f601",
+    "group": "c111111111111111",
+    "name": "State Badge",
+    "order": 6,
+    "width": "4",
+    "height": "2",
+    "format": "{{{msg.payload}}}",
+    "storeOutMessages": true,
+    "fwdInMessages": true,
+    "resendOnRefresh": true,
+    "templateScope": "local",
+    "className": "",
+    "x": 890,
+    "y": 340,
+    "wires": [
+      []
+    ]
+  }
+]
