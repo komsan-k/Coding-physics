@@ -13,6 +13,13 @@
     - HTTPClient.h
     - ArduinoJson
     - ESP32Servo
+    ---------------
+    Smartphone motion	Condition	Servo action
+    - Tilt forward	pitch > 15	pitch servo → 120°
+    - Tilt backward	pitch < -15	pitch servo → 60°
+    - Tilt right	roll > 15	roll servo → 120°
+    - Tilt left	roll < -15	roll servo → 60°
+    - Neutral	within threshold	both servos → 90°
 */
 
 #include <WiFi.h>
