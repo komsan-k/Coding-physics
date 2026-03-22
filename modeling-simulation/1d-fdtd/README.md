@@ -172,6 +172,8 @@ def update(frame):
 ani = FuncAnimation(fig, update, frames=len(Ez_history), interval=40, blit=True)
 plt.tight_layout()
 plt.show()
+```
+
 What this simulator does
 
 This code simulates:
