@@ -181,7 +181,9 @@ def update(frame):
 ani = FuncAnimation(fig, update, frames=len(frames), interval=50, blit=True)
 plt.tight_layout()
 plt.show()
-What this code does
+```
+
+## What this code does
 
 This simulator creates a 2D computational region and solves the EM field evolution over time.
 
@@ -230,7 +232,7 @@ This is a common 2D simplification for learning computational electromagnetics.
 
 The update equations are derived from Maxwell’s curl equations.
 
-Key parts you can modify
+## Key parts you can modify
 1. Grid size
 Nx, Ny = 120, 120
 
@@ -276,7 +278,8 @@ PML
 lossy materials
 PEC masks
 far-field extraction
-What you learn from this simulator
+
+## What you learn from this simulator
 
 This 2D code helps you understand:
 
