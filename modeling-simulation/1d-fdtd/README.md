@@ -174,7 +174,7 @@ plt.tight_layout()
 plt.show()
 ```
 
-What this simulator does
+## What this simulator does
 
 This code simulates:
 
@@ -189,7 +189,8 @@ incident wave
 reflected wave
 transmitted wave
 effect of material permittivity
-Main idea behind the equations
+
+## Main idea behind the equations
 
 In 1D, Maxwell’s curl equations become:
 
@@ -260,7 +261,7 @@ z
 
 The FDTD method discretizes both space and time and updates fields alternately using the Yee scheme.
 
-Important parts of the code
+## Important parts of the code
 1. Spatial grid
 Nx = 400
 dx = 1e-3
@@ -287,7 +288,7 @@ This injects a Gaussian pulse.
 
 The simple boundary condition reduces reflections from the edges.
 
-What you can modify
+## What you can modify
 
 You can easily extend this code.
 
@@ -307,7 +308,7 @@ Add conductivity loss
 
 You can include lossy media by modifying the Ez update equation.
 
-What this is useful for
+## What this is useful for
 
 This simple simulator helps you understand:
 
