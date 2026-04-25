@@ -85,7 +85,7 @@ AGGRESSIVE: __________________
 
 How does this represent a 3D CPS Digital Twin?  
 ____________________________________  
-
+<!--
 ---
 
 # Instructor Solution
@@ -110,3 +110,4 @@ Example classification:
 STATIC < 0.1  
 MOTION < 2  
 AGGRESSIVE ≥ 2  
+-->
