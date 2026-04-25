@@ -1,0 +1,294 @@
+[
+  {
+    "id": "tab_phyphox_2d",
+    "type": "tab",
+    "label": "Phyphox 2D Motion Dashboard",
+    "disabled": false,
+    "info": "Live 2D trajectory dashboard using Phyphox accelerometer data."
+  },
+  {
+    "id": "ui_tab_phyphox",
+    "type": "ui_tab",
+    "name": "Phyphox 2D",
+    "icon": "dashboard",
+    "disabled": false,
+    "hidden": false
+  },
+  {
+    "id": "ui_group_control",
+    "type": "ui_group",
+    "name": "Control",
+    "tab": "ui_tab_phyphox",
+    "order": 1,
+    "disp": true,
+    "width": "6",
+    "collapse": false
+  },
+  {
+    "id": "ui_group_motion",
+    "type": "ui_group",
+    "name": "Motion State",
+    "tab": "ui_tab_phyphox",
+    "order": 2,
+    "disp": true,
+    "width": "6",
+    "collapse": false
+  },
+  {
+    "id": "ui_group_traj",
+    "type": "ui_group",
+    "name": "Live 2D Trajectory",
+    "tab": "ui_tab_phyphox",
+    "order": 3,
+    "disp": true,
+    "width": "12",
+    "collapse": false
+  },
+  {
+    "id": "inject_poll",
+    "type": "inject",
+    "z": "tab_phyphox_2d",
+    "name": "Poll Phyphox every 200 ms",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "0.2",
+    "crontab": "",
+    "once": true,
+    "onceDelay": "1",
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 160,
+    "y": 100,
+    "wires": [
+      [
+        "set_url"
+      ]
+    ]
+  },
+  {
+    "id": "set_url",
+    "type": "function",
+    "z": "tab_phyphox_2d",
+    "name": "Set Phyphox URL",
+    "func": "// Change this IP address to your phone IP shown in Phyphox Remote Access.\nconst PHONE_IP = \"192.168.1.50\";\nmsg.url = `http://${PHONE_IP}:8080/get?accX&accY`;\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 390,
+    "y": 100,
+    "wires": [
+      [
+        "http_phyphox"
+      ]
+    ]
+  },
+  {
+    "id": "http_phyphox",
+    "type": "http request",
+    "z": "tab_phyphox_2d",
+    "name": "Read accX and accY",
+    "method": "GET",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "insecureHTTPParser": false,
+    "authType": "",
+    "senderr": false,
+    "headers": [],
+    "x": 610,
+    "y": 100,
+    "wires": [
+      [
+        "physics_engine"
+      ]
+    ]
+  },
+  {
+    "id": "physics_engine",
+    "type": "function",
+    "z": "tab_phyphox_2d",
+    "name": "2D Physics Engine",
+    "func": "// 2-D motion physics engine using Phyphox acceleration data\n// Input: msg.payload.buffer.accX.buffer[-1], msg.payload.buffer.accY.buffer[-1]\n// Output: x, y, vx, vy, speed, state, trajectory\n\nlet payload = msg.payload;\n\nfunction latest(bufferObj) {\n    if (!bufferObj || !bufferObj.buffer || bufferObj.buffer.length === 0) return 0;\n    return Number(bufferObj.buffer[bufferObj.buffer.length - 1]);\n}\n\nlet ax = latest(payload.buffer?.accX);\nlet ay = latest(payload.buffer?.accY);\n\n// Noise threshold\nif (Math.abs(ax) < 0.05) ax = 0;\nif (Math.abs(ay) < 0.05) ay = 0;\n\nlet stateData = context.get(\"stateData\") || {\n    x: 0,\n    y: 0,\n    vx: 0,\n    vy: 0,\n    lastTime: Date.now(),\n    trajectory: []\n};\n\nlet now = Date.now();\nlet dt = (now - stateData.lastTime) / 1000.0;\nstateData.lastTime = now;\n\n// Prevent unrealistic jumps if the flow pauses\nif (dt <= 0 || dt > 1.0) dt = 0.2;\n\n// Damping reduces drift but also reduces physical accuracy\nconst damping = 0.98;\nstateData.vx = damping * stateData.vx + ax * dt;\nstateData.vy = damping * stateData.vy + ay * dt;\nstateData.x = stateData.x + stateData.vx * dt;\nstateData.y = stateData.y + stateData.vy * dt;\n\nlet speed = Math.sqrt(stateData.vx ** 2 + stateData.vy ** 2);\nlet motionState = \"STOP\";\nif (speed >= 0.5) motionState = \"FAST\";\nelse if (speed >= 0.05) motionState = \"SLOW\";\n\nstateData.trajectory.push({x: stateData.x, y: stateData.y});\nif (stateData.trajectory.length > 200) stateData.trajectory.shift();\n\ncontext.set(\"stateData\", stateData);\n\nmsg.payload = {\n    ax: ax,\n    ay: ay,\n    vx: stateData.vx,\n    vy: stateData.vy,\n    x: stateData.x,\n    y: stateData.y,\n    speed: speed,\n    state: motionState,\n    trajectory: stateData.trajectory\n};\n\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 830,
+    "y": 100,
+    "wires": [
+      [
+        "motion_display",
+        "speed_gauge",
+        "state_text",
+        "trajectory_template"
+      ]
+    ]
+  },
+  {
+    "id": "motion_display",
+    "type": "ui_template",
+    "z": "tab_phyphox_2d",
+    "group": "ui_group_motion",
+    "name": "Motion Values",
+    "order": 1,
+    "width": "6",
+    "height": "4",
+    "format": "<div style=\"font-size:16px; line-height:1.8;\">\n  <b>Acceleration</b><br>\n  ax: {{msg.payload.ax | number:3}} m/s\u00b2<br>\n  ay: {{msg.payload.ay | number:3}} m/s\u00b2<br>\n  <b>Velocity</b><br>\n  vx: {{msg.payload.vx | number:3}} m/s<br>\n  vy: {{msg.payload.vy | number:3}} m/s<br>\n  <b>Position</b><br>\n  x: {{msg.payload.x | number:3}} m<br>\n  y: {{msg.payload.y | number:3}} m\n</div>",
+    "storeOutMessages": true,
+    "fwdInMessages": true,
+    "resendOnRefresh": true,
+    "templateScope": "local",
+    "className": "",
+    "x": 1070,
+    "y": 60,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "speed_gauge",
+    "type": "ui_gauge",
+    "z": "tab_phyphox_2d",
+    "name": "Speed Gauge",
+    "group": "ui_group_motion",
+    "order": 2,
+    "width": "3",
+    "height": "4",
+    "gtype": "gage",
+    "title": "Speed",
+    "label": "m/s",
+    "format": "{{payload.speed | number:2}}",
+    "min": 0,
+    "max": "2",
+    "colors": [
+      "#00b500",
+      "#e6e600",
+      "#ca3838"
+    ],
+    "seg1": "0.5",
+    "seg2": "1.2",
+    "diff": false,
+    "className": "",
+    "x": 1070,
+    "y": 110,
+    "wires": []
+  },
+  {
+    "id": "state_text",
+    "type": "ui_text",
+    "z": "tab_phyphox_2d",
+    "group": "ui_group_motion",
+    "order": 3,
+    "width": "3",
+    "height": "1",
+    "name": "Motion State",
+    "label": "State",
+    "format": "{{msg.payload.state}}",
+    "layout": "row-spread",
+    "className": "",
+    "x": 1070,
+    "y": 160,
+    "wires": []
+  },
+  {
+    "id": "trajectory_template",
+    "type": "ui_template",
+    "z": "tab_phyphox_2d",
+    "group": "ui_group_traj",
+    "name": "2D Canvas Trajectory",
+    "order": 1,
+    "width": "12",
+    "height": "8",
+    "format": "<canvas id=\"trajCanvas\" width=\"900\" height=\"430\" style=\"width:100%; height:430px; border:1px solid #999; background:#fafafa;\"></canvas>\n<script>\n(function(scope) {\n    scope.$watch('msg', function(msg) {\n        if (!msg || !msg.payload || !msg.payload.trajectory) return;\n        const canvas = document.getElementById('trajCanvas');\n        const ctx = canvas.getContext('2d');\n        const W = canvas.width;\n        const H = canvas.height;\n        const pts = msg.payload.trajectory;\n        ctx.clearRect(0, 0, W, H);\n        ctx.strokeStyle = '#ddd';\n        ctx.lineWidth = 1;\n        ctx.beginPath();\n        ctx.moveTo(W/2, 0); ctx.lineTo(W/2, H);\n        ctx.moveTo(0, H/2); ctx.lineTo(W, H/2);\n        ctx.stroke();\n        ctx.fillStyle = '#333';\n        ctx.font = '14px Arial';\n        ctx.fillText('2-D Trajectory: x-y position', 10, 20);\n        ctx.fillText('x=' + msg.payload.x.toFixed(2) + ' m, y=' + msg.payload.y.toFixed(2) + ' m', 10, 40);\n        ctx.fillText('state=' + msg.payload.state, 10, 60);\n        const scale = 120; // pixels per meter\n        function px(p) { return W/2 + p.x * scale; }\n        function py(p) { return H/2 - p.y * scale; }\n        if (pts.length > 1) {\n            ctx.strokeStyle = '#1565c0';\n            ctx.lineWidth = 3;\n            ctx.beginPath();\n            ctx.moveTo(px(pts[0]), py(pts[0]));\n            for (let i = 1; i < pts.length; i++) ctx.lineTo(px(pts[i]), py(pts[i]));\n            ctx.stroke();\n        }\n        const last = pts[pts.length - 1];\n        if (last) {\n            ctx.fillStyle = '#d32f2f';\n            ctx.beginPath();\n            ctx.arc(px(last), py(last), 7, 0, 2*Math.PI);\n            ctx.fill();\n        }\n    });\n})(scope);\n</script>",
+    "storeOutMessages": true,
+    "fwdInMessages": true,
+    "resendOnRefresh": true,
+    "templateScope": "local",
+    "className": "",
+    "x": 1090,
+    "y": 220,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "reset_button",
+    "type": "ui_button",
+    "z": "tab_phyphox_2d",
+    "name": "Reset Trajectory",
+    "group": "ui_group_control",
+    "order": 1,
+    "width": "3",
+    "height": "1",
+    "passthru": false,
+    "label": "Reset Trajectory",
+    "tooltip": "",
+    "color": "",
+    "bgcolor": "",
+    "className": "",
+    "icon": "refresh",
+    "payload": "reset",
+    "payloadType": "str",
+    "topic": "reset",
+    "topicType": "str",
+    "x": 160,
+    "y": 220,
+    "wires": [
+      [
+        "reset_engine"
+      ]
+    ]
+  },
+  {
+    "id": "reset_engine",
+    "type": "function",
+    "z": "tab_phyphox_2d",
+    "name": "Reset Physics State",
+    "func": "context.set(\"stateData\", {\n    x: 0,\n    y: 0,\n    vx: 0,\n    vy: 0,\n    lastTime: Date.now(),\n    trajectory: []\n});\nmsg.payload = {\n    ax: 0,\n    ay: 0,\n    vx: 0,\n    vy: 0,\n    x: 0,\n    y: 0,\n    speed: 0,\n    state: \"RESET\",\n    trajectory: []\n};\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 390,
+    "y": 220,
+    "wires": [
+      [
+        "motion_display",
+        "speed_gauge",
+        "state_text",
+        "trajectory_template"
+      ]
+    ]
+  },
+  {
+    "id": "debug_output",
+    "type": "debug",
+    "z": "tab_phyphox_2d",
+    "name": "Debug Physics Output",
+    "active": false,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 1090,
+    "y": 300,
+    "wires": []
+  }
+]
