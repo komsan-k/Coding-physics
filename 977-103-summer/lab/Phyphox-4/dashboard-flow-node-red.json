@@ -1,0 +1,335 @@
+[
+  {
+    "id": "tab_phyphox_3d",
+    "type": "tab",
+    "label": "Phyphox 3D Cube Dashboard",
+    "disabled": false,
+    "info": "Live 3D orientation dashboard using Phyphox accelerometer + gyroscope data with complementary filter."
+  },
+  {
+    "id": "ui_tab_phyphox_3d",
+    "type": "ui_tab",
+    "name": "Phyphox 3D",
+    "icon": "3d_rotation",
+    "disabled": false,
+    "hidden": false
+  },
+  {
+    "id": "ui_group_control_3d",
+    "type": "ui_group",
+    "name": "Control",
+    "tab": "ui_tab_phyphox_3d",
+    "order": 1,
+    "disp": true,
+    "width": "6",
+    "collapse": false
+  },
+  {
+    "id": "ui_group_state_3d",
+    "type": "ui_group",
+    "name": "Orientation State",
+    "tab": "ui_tab_phyphox_3d",
+    "order": 2,
+    "disp": true,
+    "width": "6",
+    "collapse": false
+  },
+  {
+    "id": "ui_group_cube_3d",
+    "type": "ui_group",
+    "name": "Live 3D Cube",
+    "tab": "ui_tab_phyphox_3d",
+    "order": 3,
+    "disp": true,
+    "width": "12",
+    "collapse": false
+  },
+  {
+    "id": "inject_poll_3d",
+    "type": "inject",
+    "z": "tab_phyphox_3d",
+    "name": "Poll Phyphox every 100 ms",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "0.1",
+    "crontab": "",
+    "once": true,
+    "onceDelay": "1",
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 170,
+    "y": 100,
+    "wires": [
+      [
+        "set_url_3d"
+      ]
+    ]
+  },
+  {
+    "id": "set_url_3d",
+    "type": "function",
+    "z": "tab_phyphox_3d",
+    "name": "Set Phyphox IMU URL",
+    "func": "// Change this IP address to your phone IP shown in Phyphox Remote Access.\n// Use a Phyphox experiment that exposes accX, accY, accZ, gyrX, gyrY, gyrZ.\nconst PHONE_IP = \"192.168.1.50\";\nmsg.url = `http://${PHONE_IP}:8080/get?accX&accY&accZ&gyrX&gyrY&gyrZ`;\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 420,
+    "y": 100,
+    "wires": [
+      [
+        "http_phyphox_3d"
+      ]
+    ]
+  },
+  {
+    "id": "http_phyphox_3d",
+    "type": "http request",
+    "z": "tab_phyphox_3d",
+    "name": "Read Accel + Gyro",
+    "method": "GET",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "insecureHTTPParser": false,
+    "authType": "",
+    "senderr": false,
+    "headers": [],
+    "x": 660,
+    "y": 100,
+    "wires": [
+      [
+        "fusion_engine_3d"
+      ]
+    ]
+  },
+  {
+    "id": "fusion_engine_3d",
+    "type": "function",
+    "z": "tab_phyphox_3d",
+    "name": "3D Sensor Fusion Engine",
+    "func": "// 3D rigid-body orientation engine using accelerometer + gyroscope\n// Complementary filter: gyro gives fast response; accelerometer corrects roll/pitch drift.\n// Units assumed: accelerometer in m/s^2, gyroscope in rad/s.\n\nfunction latest(bufferObj) {\n    if (!bufferObj || !bufferObj.buffer || bufferObj.buffer.length === 0) return 0;\n    return Number(bufferObj.buffer[bufferObj.buffer.length - 1]);\n}\n\nconst b = msg.payload.buffer || {};\nlet ax = latest(b.accX);\nlet ay = latest(b.accY);\nlet az = latest(b.accZ);\nlet gx = latest(b.gyrX);\nlet gy = latest(b.gyrY);\nlet gz = latest(b.gyrZ);\n\n// Noise threshold for gyro\nif (Math.abs(gx) < 0.005) gx = 0;\nif (Math.abs(gy) < 0.005) gy = 0;\nif (Math.abs(gz) < 0.005) gz = 0;\n\nlet s = context.get(\"orientationState\") || {\n    roll: 0,\n    pitch: 0,\n    yaw: 0,\n    lastTime: Date.now()\n};\n\nlet now = Date.now();\nlet dt = (now - s.lastTime) / 1000.0;\ns.lastTime = now;\nif (dt <= 0 || dt > 1.0) dt = 0.1;\n\n// Integrate gyroscope\nlet rollGyro = s.roll + gx * dt;\nlet pitchGyro = s.pitch + gy * dt;\nlet yawGyro = s.yaw + gz * dt;\n\n// Accelerometer-based roll and pitch\nlet rollAcc = Math.atan2(ay, az);\nlet pitchAcc = Math.atan2(-ax, Math.sqrt(ay * ay + az * az));\n\n// Complementary filter\nconst alpha = 0.98;\ns.roll = alpha * rollGyro + (1 - alpha) * rollAcc;\ns.pitch = alpha * pitchGyro + (1 - alpha) * pitchAcc;\ns.yaw = yawGyro; // yaw cannot be corrected by accelerometer alone\n\ncontext.set(\"orientationState\", s);\n\nconst rad2deg = 180 / Math.PI;\nlet omegaMag = Math.sqrt(gx*gx + gy*gy + gz*gz);\nlet accMag = Math.sqrt(ax*ax + ay*ay + az*az);\n\nlet motionState = \"STABLE\";\nif (omegaMag > 1.0) motionState = \"FAST ROTATION\";\nelse if (omegaMag > 0.1) motionState = \"SLOW ROTATION\";\n\nmsg.payload = {\n    ax, ay, az,\n    gx, gy, gz,\n    accMag,\n    omegaMag,\n    roll: s.roll,\n    pitch: s.pitch,\n    yaw: s.yaw,\n    rollDeg: s.roll * rad2deg,\n    pitchDeg: s.pitch * rad2deg,\n    yawDeg: s.yaw * rad2deg,\n    state: motionState,\n    dt\n};\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 910,
+    "y": 100,
+    "wires": [
+      [
+        "rpy_values_3d",
+        "roll_gauge_3d",
+        "pitch_gauge_3d",
+        "yaw_gauge_3d",
+        "cube_template_3d"
+      ]
+    ]
+  },
+  {
+    "id": "rpy_values_3d",
+    "type": "ui_template",
+    "z": "tab_phyphox_3d",
+    "group": "ui_group_state_3d",
+    "name": "RPY + Sensor Values",
+    "order": 1,
+    "width": "6",
+    "height": "4",
+    "format": "<div style=\"font-size:16px; line-height:1.7;\">\n  <b>Orientation</b><br>\n  Roll: {{msg.payload.rollDeg | number:1}}\u00b0<br>\n  Pitch: {{msg.payload.pitchDeg | number:1}}\u00b0<br>\n  Yaw: {{msg.payload.yawDeg | number:1}}\u00b0<br>\n  <b>Sensor Magnitudes</b><br>\n  |a|: {{msg.payload.accMag | number:2}} m/s\u00b2<br>\n  |\u03c9|: {{msg.payload.omegaMag | number:2}} rad/s<br>\n  State: <b>{{msg.payload.state}}</b>\n</div>",
+    "storeOutMessages": true,
+    "fwdInMessages": true,
+    "resendOnRefresh": true,
+    "templateScope": "local",
+    "className": "",
+    "x": 1190,
+    "y": 40,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "roll_gauge_3d",
+    "type": "ui_gauge",
+    "z": "tab_phyphox_3d",
+    "name": "Roll Gauge",
+    "group": "ui_group_control_3d",
+    "order": 1,
+    "width": "2",
+    "height": "3",
+    "gtype": "gage",
+    "title": "Roll",
+    "label": "deg",
+    "format": "{{payload.rollDeg | number:0}}",
+    "min": "-180",
+    "max": "180",
+    "colors": [
+      "#00b500",
+      "#e6e600",
+      "#ca3838"
+    ],
+    "seg1": "-45",
+    "seg2": "45",
+    "diff": false,
+    "className": "",
+    "x": 1180,
+    "y": 90,
+    "wires": []
+  },
+  {
+    "id": "pitch_gauge_3d",
+    "type": "ui_gauge",
+    "z": "tab_phyphox_3d",
+    "name": "Pitch Gauge",
+    "group": "ui_group_control_3d",
+    "order": 2,
+    "width": "2",
+    "height": "3",
+    "gtype": "gage",
+    "title": "Pitch",
+    "label": "deg",
+    "format": "{{payload.pitchDeg | number:0}}",
+    "min": "-180",
+    "max": "180",
+    "colors": [
+      "#00b500",
+      "#e6e600",
+      "#ca3838"
+    ],
+    "seg1": "-45",
+    "seg2": "45",
+    "diff": false,
+    "className": "",
+    "x": 1190,
+    "y": 140,
+    "wires": []
+  },
+  {
+    "id": "yaw_gauge_3d",
+    "type": "ui_gauge",
+    "z": "tab_phyphox_3d",
+    "name": "Yaw Gauge",
+    "group": "ui_group_control_3d",
+    "order": 3,
+    "width": "2",
+    "height": "3",
+    "gtype": "gage",
+    "title": "Yaw",
+    "label": "deg",
+    "format": "{{payload.yawDeg | number:0}}",
+    "min": "-360",
+    "max": "360",
+    "colors": [
+      "#00b500",
+      "#e6e600",
+      "#ca3838"
+    ],
+    "seg1": "-90",
+    "seg2": "90",
+    "diff": false,
+    "className": "",
+    "x": 1180,
+    "y": 190,
+    "wires": []
+  },
+  {
+    "id": "cube_template_3d",
+    "type": "ui_template",
+    "z": "tab_phyphox_3d",
+    "group": "ui_group_cube_3d",
+    "name": "Live 3D Cube Canvas",
+    "order": 1,
+    "width": "12",
+    "height": "9",
+    "format": "<canvas id=\"cubeCanvas3D\" width=\"900\" height=\"520\" style=\"width:100%; height:520px; border:1px solid #999; background:#fafafa;\"></canvas>\n<script>\n(function(scope) {\n  const vertices = [\n    [-1,-1,-1], [1,-1,-1], [1,1,-1], [-1,1,-1],\n    [-1,-1, 1], [1,-1, 1], [1,1, 1], [-1,1, 1]\n  ];\n  const edges = [\n    [0,1],[1,2],[2,3],[3,0],\n    [4,5],[5,6],[6,7],[7,4],\n    [0,4],[1,5],[2,6],[3,7]\n  ];\n\n  function rotate(v, roll, pitch, yaw) {\n    let [x,y,z] = v;\n    // Roll X\n    let cy = Math.cos(roll), sy = Math.sin(roll);\n    let y1 = y*cy - z*sy;\n    let z1 = y*sy + z*cy;\n    y = y1; z = z1;\n    // Pitch Y\n    cy = Math.cos(pitch); sy = Math.sin(pitch);\n    let x2 = x*cy + z*sy;\n    let z2 = -x*sy + z*cy;\n    x = x2; z = z2;\n    // Yaw Z\n    cy = Math.cos(yaw); sy = Math.sin(yaw);\n    let x3 = x*cy - y*sy;\n    let y3 = x*sy + y*cy;\n    return [x3, y3, z];\n  }\n\n  function project(v, W, H) {\n    const scale = 110;\n    const distance = 5;\n    const factor = distance / (distance + v[2]);\n    return [W/2 + v[0]*scale*factor, H/2 - v[1]*scale*factor];\n  }\n\n  scope.$watch('msg', function(msg) {\n    if (!msg || !msg.payload) return;\n    const canvas = document.getElementById('cubeCanvas3D');\n    if (!canvas) return;\n    const ctx = canvas.getContext('2d');\n    const W = canvas.width;\n    const H = canvas.height;\n    const roll = msg.payload.roll;\n    const pitch = msg.payload.pitch;\n    const yaw = msg.payload.yaw;\n\n    ctx.clearRect(0, 0, W, H);\n    ctx.fillStyle = '#fafafa';\n    ctx.fillRect(0, 0, W, H);\n\n    ctx.strokeStyle = '#dddddd';\n    ctx.lineWidth = 1;\n    ctx.beginPath();\n    ctx.moveTo(W/2, 0); ctx.lineTo(W/2, H);\n    ctx.moveTo(0, H/2); ctx.lineTo(W, H/2);\n    ctx.stroke();\n\n    ctx.fillStyle = '#333';\n    ctx.font = '15px Arial';\n    ctx.fillText('Live 3D Cube Orientation from Phyphox IMU', 10, 24);\n    ctx.fillText('Roll=' + msg.payload.rollDeg.toFixed(1) + '\u00b0, Pitch=' + msg.payload.pitchDeg.toFixed(1) + '\u00b0, Yaw=' + msg.payload.yawDeg.toFixed(1) + '\u00b0', 10, 48);\n    ctx.fillText('State=' + msg.payload.state, 10, 72);\n\n    const pts3 = vertices.map(v => rotate(v, roll, pitch, yaw));\n    const pts2 = pts3.map(v => project(v, W, H));\n\n    // Draw rear-to-front edges simply\n    ctx.strokeStyle = '#1565c0';\n    ctx.lineWidth = 4;\n    edges.forEach(e => {\n      const a = pts2[e[0]];\n      const b = pts2[e[1]];\n      ctx.beginPath();\n      ctx.moveTo(a[0], a[1]);\n      ctx.lineTo(b[0], b[1]);\n      ctx.stroke();\n    });\n\n    // Draw vertices\n    ctx.fillStyle = '#d32f2f';\n    pts2.forEach(p => {\n      ctx.beginPath();\n      ctx.arc(p[0], p[1], 5, 0, 2*Math.PI);\n      ctx.fill();\n    });\n\n    // Local body axes\n    const origin = project(rotate([0,0,0], roll, pitch, yaw), W, H);\n    const xAxis = project(rotate([1.7,0,0], roll, pitch, yaw), W, H);\n    const yAxis = project(rotate([0,1.7,0], roll, pitch, yaw), W, H);\n    const zAxis = project(rotate([0,0,1.7], roll, pitch, yaw), W, H);\n    function drawAxis(end, label) {\n      ctx.strokeStyle = '#444';\n      ctx.lineWidth = 2;\n      ctx.beginPath(); ctx.moveTo(origin[0], origin[1]); ctx.lineTo(end[0], end[1]); ctx.stroke();\n      ctx.fillStyle = '#111'; ctx.fillText(label, end[0]+5, end[1]+5);\n    }\n    drawAxis(xAxis, 'X'); drawAxis(yAxis, 'Y'); drawAxis(zAxis, 'Z');\n  });\n})(scope);\n</script>",
+    "storeOutMessages": true,
+    "fwdInMessages": true,
+    "resendOnRefresh": true,
+    "templateScope": "local",
+    "className": "",
+    "x": 1200,
+    "y": 250,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "reset_button_3d",
+    "type": "ui_button",
+    "z": "tab_phyphox_3d",
+    "name": "Reset Orientation",
+    "group": "ui_group_control_3d",
+    "order": 4,
+    "width": "3",
+    "height": "1",
+    "passthru": false,
+    "label": "Reset Orientation",
+    "tooltip": "",
+    "color": "",
+    "bgcolor": "",
+    "className": "",
+    "icon": "refresh",
+    "payload": "reset",
+    "payloadType": "str",
+    "topic": "reset",
+    "topicType": "str",
+    "x": 170,
+    "y": 240,
+    "wires": [
+      [
+        "reset_engine_3d"
+      ]
+    ]
+  },
+  {
+    "id": "reset_engine_3d",
+    "type": "function",
+    "z": "tab_phyphox_3d",
+    "name": "Reset Orientation State",
+    "func": "context.set(\"orientationState\", {\n    roll: 0,\n    pitch: 0,\n    yaw: 0,\n    lastTime: Date.now()\n});\nmsg.payload = {\n    ax: 0, ay: 0, az: 0,\n    gx: 0, gy: 0, gz: 0,\n    accMag: 0,\n    omegaMag: 0,\n    roll: 0,\n    pitch: 0,\n    yaw: 0,\n    rollDeg: 0,\n    pitchDeg: 0,\n    yawDeg: 0,\n    state: \"RESET\",\n    dt: 0\n};\nreturn msg;",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 430,
+    "y": 240,
+    "wires": [
+      [
+        "rpy_values_3d",
+        "roll_gauge_3d",
+        "pitch_gauge_3d",
+        "yaw_gauge_3d",
+        "cube_template_3d"
+      ]
+    ]
+  },
+  {
+    "id": "debug_3d",
+    "type": "debug",
+    "z": "tab_phyphox_3d",
+    "name": "Debug 3D Output",
+    "active": false,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 1200,
+    "y": 320,
+    "wires": []
+  }
+]
