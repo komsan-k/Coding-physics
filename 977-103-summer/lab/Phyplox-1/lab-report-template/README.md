@@ -7,7 +7,6 @@
 - Name:
 - Student ID:
 - Course:
-- Instructor:
 - Date:
 
 ---
