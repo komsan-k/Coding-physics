@@ -109,6 +109,7 @@ Q8: filtering, thresholding, Kalman filter
 
 Example classification:  
 NO ROTATION < 0.05  
--->
+
 SLOW < 1.0  
 FAST ≥ 1.0  
+-->
