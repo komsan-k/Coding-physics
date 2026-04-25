@@ -89,6 +89,7 @@ FAST: __________________
 How does this relate to CPS Digital Twin?  
 ____________________________________  
 
+<!--
 ---
 
 # Instructor Solution
@@ -104,3 +105,4 @@ Example classification:
 STOP < 0.05  
 SLOW < 0.5  
 FAST ≥ 0.5  
+-->
