@@ -1,4 +1,4 @@
-# Student Worksheet + Instructor Solution
+# Student Worksheet
 ## Lab: 1-D Motion Physics Engine using Phyphox
 
 ---
