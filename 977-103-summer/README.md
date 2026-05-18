@@ -55,7 +55,7 @@ Students will develop a mini-project integrating smartphone sensor data, motion 
 |------------|------------|
 | Laboratory Exercises | 40% |
 | Coursera Certificates | 30% - 50% |
-| Mini Project | 10% - 20% |
+| Mini Project | 10% |
 | Final Quiz | 10% - 20% |
 
 > **Note:** Students are required to submit valid Coursera completion certificates and complete all laboratory activities.
