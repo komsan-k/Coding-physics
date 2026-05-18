@@ -54,9 +54,9 @@ Students will develop a mini-project integrating smartphone sensor data, motion 
 | Component | Percentage |
 |------------|------------|
 | Laboratory Exercises | 40% |
-| Coursera Certificates | 50% |
-| Mini Project | 10% |
-| Final Quiz | 20% |
+| Coursera Certificates | 30% - 50% |
+| Mini Project | 10% - 20% |
+| Final Quiz | 10% - 20% |
 
 > **Note:** Students are required to submit valid Coursera completion certificates and complete all laboratory activities.
 
@@ -70,18 +70,6 @@ Students will develop a mini-project integrating smartphone sensor data, motion 
 - Phyphox Smartphone Application
 - GitHub Account
 
----
-
-## Repository Structure
-
-```text
-977-103-Summer-2026/
-│── README.md
-│── labs/
-│── mini-project/
-│── assignments/
-│── resources/
-```
 
 ---
 
