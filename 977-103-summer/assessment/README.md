@@ -32,7 +32,7 @@ Students must complete all **10 modules** of the General Physics course within *
 * The weekly progress report contributes **10%** of the final grade.
 * The completion of the 10 modules contributes **80%** of the final grade.
 
-**Deadline:** 3 July 2026
+**Deadline:** 10 July 2026
 
 #### Late Submission Policy
 
